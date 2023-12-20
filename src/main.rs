@@ -1,5 +1,4 @@
-use std::{io::{stdout, Write}, process::ExitCode};
-
+use std::{io::{stdout, Write}, process::ExitCode, time::{Duration, Instant}, thread};
 use crossterm::{execute, queue, cursor, terminal::{Clear, ClearType, size}, style::{Print, ResetColor, Stylize, SetForegroundColor, Color, SetBackgroundColor}};
 
 fn main() -> ExitCode {
@@ -14,6 +13,9 @@ fn main() -> ExitCode {
         None => {eprintln!("Error getting arguments"); return 1.into();}
     };
 
+    let mut wpm = 600;
+    let frame_time = Duration::new(0, (10u64.pow(9) *60/wpm) as u32);
+
     let file = poppler::PopplerDocument::new_from_file(source, "").unwrap();
     let n_pages = file.get_n_pages();
     // let (cols, _) = size().unwrap();
@@ -24,11 +26,12 @@ fn main() -> ExitCode {
         let str = file.get_page(i).unwrap();
         let str = str.get_text().unwrap();
         // if str.lines().collect::<Vec<&str>>().len() > cols as usize {
-            // let strings = str.splitn(cols, '\n');
+            // // let strings: Vec<&str> = str.split(str.lines().nth(cols as usize).unwrap()).collect();
         // }
         let words: Vec<&str> = str.split_whitespace().collect();
 
         while curr_word < words.len() {
+            let frame_start = Instant::now();
             let w_ptr = words[curr_word].as_ptr();
             let str = str.as_bytes();
             let (beg, end) = unsafe { str.split_at(w_ptr.offset_from(str.as_ptr()) as usize) };
@@ -55,9 +58,12 @@ fn main() -> ExitCode {
                 Err(e) => { eprintln!("Error while printing: {e}"); return 1.into(); }
             };
             stdout.flush().unwrap();
+            
+            let frame_d = frame_start.elapsed();
+            if frame_d < frame_time {
+                thread::sleep(frame_time - frame_d);
+            }
 
-            let mut s = String::new();
-            std::io::stdin().read_line(&mut s).unwrap();
             curr_word += 1;
         }
     }
