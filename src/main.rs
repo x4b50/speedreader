@@ -1,17 +1,6 @@
 use std::{io::stdout, process::ExitCode};
 
-use crossterm::{execute, style::{Color, Print, ResetColor, SetForegroundColor, Stylize}};
-
-// struct Tsize {
-    // col: u16,
-    // row: u16,
-// }
-
-// impl Tsize {
-    // fn from_tupl(v: (u16, u16)) -> Tsize {
-        // Tsize { col: v.0, row: v.1 }
-    // }
-// }
+use crossterm::{execute, style::{Print, ResetColor, Stylize}};
 
 fn main() -> ExitCode {
     let mut args = std::env::args();
@@ -25,23 +14,27 @@ fn main() -> ExitCode {
         None => {eprintln!("Error getting arguments"); return 1.into();}
     };
 
-    // let size = Tsize::from_tupl(crossterm::terminal::size().unwrap());
-
     let file = poppler::PopplerDocument::new_from_file(source, "").unwrap();
-    let str = file.get_page(0).unwrap();
-    let str = str.get_text().unwrap();
-    
-    match execute!(
-        stdout(),
-        SetForegroundColor(Color::Blue),
-        // SetBackgroundColor(Color::Red),
-        Print(str.bold()),
-        ResetColor
-    ) {
-        Ok(_) => {}
-        Err(e) => {
-            eprintln!("Error while printing: {e}"); return 1.into();
-        }
-    };
+    let n_pages = file.get_n_pages();
+
+    for i in 0..n_pages {
+        let str = file.get_page(i).unwrap();
+        let str = str.get_text().unwrap();
+
+        match execute!(
+            stdout(),
+            // SetForegroundColor(Color::Blue),
+            // SetBackgroundColor(Color::Red),
+            // Print(str.bold()),
+            Print(format!("{str}\n\n")),
+            ResetColor
+            )
+        {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Error while printing: {e}"); return 1.into();
+            }
+        };
+    }
     0.into()
 }
